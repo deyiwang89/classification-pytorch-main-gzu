@@ -12,8 +12,8 @@ import einops
 
 
 #--------------------------------------#
-#   Gelu激活函数的实现
-#   利用近似的数学公式
+#   Implementation of GELU activation function
+#   Using approximate mathematical formula
 #--------------------------------------#
 class GELU(nn.Module):
     def __init__(self):
@@ -57,10 +57,10 @@ class PatchEmbed(nn.Module):
         return x
 
 #--------------------------------------------------------------------------------------------------------------------#
-#   Attention机制
-#   将输入的特征qkv特征进行划分，首先生成query, key, value。query是查询向量、key是键向量、v是值向量。
-#   然后利用 查询向量query 点乘 转置后的键向量key，这一步可以通俗的理解为，利用查询向量去查询序列的特征，获得序列每个部分的重要程度score。
-#   然后利用 score 点乘 value，这一步可以通俗的理解为，将序列每个部分的重要程度重新施加到序列的值上去。
+#   Attention Mechanism
+#   Divide the input qkv features, first generating query, key, value.
+#   Then use the query vector dot product with the transposed key vector. This step can be understood as using the query vector to query the features of the sequence to obtain the importance score of each part of the sequence.
+#   Then use the score dot product with the value. This step can be understood as reapplying the importance of each part of the sequence to the values of the sequence.
 #--------------------------------------------------------------------------------------------------------------------#
 class Attention(nn.Module):
     def __init__(self, dim, num_heads=8, qkv_bias=False, attn_drop=0., proj_drop=0.):
@@ -131,39 +131,39 @@ class VisionTransformer(nn.Module):
             self, input_shape=[224, 224], patch_size=16, in_chans=3, num_classes=1000, num_features=768,
             depth=12, num_heads=12, mlp_ratio=4., qkv_bias=True, drop_rate=0.1, attn_drop_rate=0.1, drop_path_rate=0.1,
             norm_layer=partial(nn.LayerNorm, eps=1e-6), act_layer=GELU
-        ):
+    ):
         super().__init__()
         #-----------------------------------------------#
         #   224, 224, 3 -> 196, 768
-        # 图片预处理部分
-        # 将输入的图像划分为多个patches，然后将每个patch嵌入到高维特征向量中
+        #   Image preprocessing part
+        #   Divide the input image into multiple patches, and then embed each patch into a high-dimensional feature vector
         #-----------------------------------------------#
-        self.patch_embed    = PatchEmbed(input_shape=input_shape, patch_size=patch_size, in_chans=in_chans, num_features=num_features) # 初始化patch嵌入层
-        num_patches         = (224 // patch_size) * (224 // patch_size) # 计算输入图像被划分为多少个patches
-        self.num_features   = num_features # 设置特征数量
-        self.new_feature_shape = [int(input_shape[0] // patch_size), int(input_shape[1] // patch_size)] # 计算新的特征形状
-        self.old_feature_shape = [int(224 // patch_size), int(224 // patch_size)] # 计算旧的（原始）特征形状
+        self.patch_embed    = PatchEmbed(input_shape=input_shape, patch_size=patch_size, in_chans=in_chans, num_features=num_features) # Initialize patch embedding layer
+        num_patches         = (224 // patch_size) * (224 // patch_size) # Calculate how many patches the input image is divided into
+        self.num_features   = num_features # Set number of features
+        self.new_feature_shape = [int(input_shape[0] // patch_size), int(input_shape[1] // patch_size)] # Calculate new feature shape
+        self.old_feature_shape = [int(224 // patch_size), int(224 // patch_size)] # Calculate old (original) feature shape
 
         #--------------------------------------------------------------------------------------------------------------------#
-        #   classtoken部分是transformer的分类特征。用于堆叠到序列化后的图片特征中，作为一个单位的序列特征进行特征提取。
+        #   The classtoken part is the classification feature of the transformer. Used to stack into the serialized image features as a unit sequence feature for feature extraction.
         #
-        #   在利用步长为16x16的卷积将输入图片划分成14x14的部分后，将14x14部分的特征平铺，一幅图片会存在序列长度为196的特征。
-        #   此时生成一个classtoken，将classtoken堆叠到序列长度为196的特征上，获得一个序列长度为197的特征。
-        #   在特征提取的过程中，classtoken会与图片特征进行特征的交互。最终分类时，我们取出classtoken的特征，利用全连接分类。
+        #   After dividing the input image into 14x14 parts using a convolution with a stride of 16x16, flattening the features of the 14x14 parts, an image will have features with a sequence length of 196.
+        #   At this time, a classtoken is generated and stacked onto the features with a sequence length of 196 to obtain a feature with a sequence length of 197.
+        #   During feature extraction, the classtoken will interact with the image features. Finally, during classification, we take out the features of the classtoken and use full connection for classification.
         #--------------------------------------------------------------------------------------------------------------------#
         #   196, 768 -> 197, 768
         self.cls_token      = nn.Parameter(torch.zeros(1, 1, num_features))
         #--------------------------------------------------------------------------------------------------------------------#
-        #   为网络提取到的特征添加上位置信息。
-        #   以输入图片为224, 224, 3为例，我们获得的序列化后的图片特征为196, 768。加上classtoken后就是197, 768
-        #   此时生成的pos_Embedding的shape也为197, 768，代表每一个特征的位置信息。
+        #   Add position information to the features extracted by the network.
+        #   Taking the input image as 224, 224, 3 as an example, the serialized image features we obtain are 196, 768. Adding classtoken makes it 197, 768.
+        #   The shape of the generated pos_Embedding is also 197, 768, representing the position information of each feature.
         #--------------------------------------------------------------------------------------------------------------------#
         #   197, 768 -> 197, 768
         self.pos_embed      = nn.Parameter(torch.zeros(1, num_patches + 1, num_features))
         self.pos_drop       = nn.Dropout(p=drop_rate)
 
         #-----------------------------------------------#
-        #   197, 768 -> 197, 768  12次
+        #   197, 768 -> 197, 768  12 times
         #-----------------------------------------------#
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]
         self.blocks = nn.Sequential(

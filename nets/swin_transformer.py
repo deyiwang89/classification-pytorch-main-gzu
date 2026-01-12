@@ -81,8 +81,8 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
     return _no_grad_trunc_normal_(tensor, mean, std, a, b)
 
 #--------------------------------------#
-#   Gelu激活函数的实现
-#   利用近似的数学公式
+#   Implementation of GELU activation function
+#   Using approximate mathematical formula
 #--------------------------------------#
 class GELU(nn.Module):
     def __init__(self):
@@ -92,8 +92,8 @@ class GELU(nn.Module):
         return 0.5 * x * (1 + torch.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * torch.pow(x,3))))
 
 #-------------------------------------------------------#
-#   对输入进来的图片进行高和宽的压缩
-#   并且进行通道的扩张。
+#   Compress the height and width of the input image
+#   And perform channel expansion.
 #-------------------------------------------------------#
 class PatchEmbed(nn.Module):
     def __init__(self, img_size=[224, 224], patch_size=4, in_chans=3, embed_dim=96, norm_layer=None):
@@ -163,8 +163,8 @@ class WindowAttention(nn.Module):
         self.scale          = qk_scale or head_dim ** -0.5
 
         #--------------------------------------------------------------------------#
-        #   相对坐标矩阵，用于表示每个窗口内，其它点相对于自己的坐标
-        #   由于相对坐标取值范围为-6 ~ +6。中间共13个值，因此需要13 * 13
+        #   Relative position matrix, used to represent the coordinates of other points relative to itself within each window
+        #   Since the relative coordinate range is -6 ~ +6. There are 13 values in total, so 13 * 13 is needed
         #   13 * 13, num_heads
         #--------------------------------------------------------------------------#
         self.relative_position_bias_table = nn.Parameter(
@@ -172,7 +172,7 @@ class WindowAttention(nn.Module):
         ) 
         
         #--------------------------------------------------------------------------#
-        #   该部分用于获取7x7的矩阵内部，其它特征点相对于自身相对坐标
+        #   This part is used to get the relative coordinates of other feature points relative to itself inside the 7x7 matrix
         #--------------------------------------------------------------------------#
         coords_h    = torch.arange(self.window_size[0])
         coords_w    = torch.arange(self.window_size[1])
@@ -187,7 +187,7 @@ class WindowAttention(nn.Module):
         self.register_buffer("relative_position_index", relative_position_index)
 
         #--------------------------------------------------------------------------#
-        #   乘积获得q、k、v，用于计算多头注意力机制
+        #   Product to get q, k, v, used for calculating multi-head attention mechanism
         #--------------------------------------------------------------------------#
         self.qkv        = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop  = nn.Dropout(attn_drop)
@@ -216,8 +216,8 @@ class WindowAttention(nn.Module):
         attn    = (q @ k.transpose(-2, -1))
 
         #--------------------------------------------------------------------------#
-        #   这一步是根据已经求得的注意力，加上相对坐标的偏执量
-        #   形成最后的注意力
+        #   This step is to add the relative coordinate bias based on the calculated attention
+        #   Form the final attention
         #--------------------------------------------------------------------------#
         relative_position_bias = self.relative_position_bias_table[self.relative_position_index.view(-1)].view(
             self.window_size[0] * self.window_size[1], self.window_size[0] * self.window_size[1], -1)  # Wh*Ww,Wh*Ww,nH
@@ -225,7 +225,7 @@ class WindowAttention(nn.Module):
         attn = attn + relative_position_bias.unsqueeze(0)
 
         #--------------------------------------------------------------------------#
-        #   加上mask，保证分区。
+        #   Add mask to ensure partitioning.
         #   bs * 64, num_head, 49, 49
         #--------------------------------------------------------------------------#
         if mask is not None:
@@ -282,7 +282,7 @@ class DropPath(nn.Module):
 
 
 #-------------------------------------------------------#
-#   两次全连接
+#   Two fully connected layers
 #-------------------------------------------------------#
 class Mlp(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=GELU, drop=0.):
@@ -303,8 +303,8 @@ class Mlp(nn.Module):
         return x
 
 #-------------------------------------------------------#
-#   每个阶段重复的基础模块
-#   在这其中会使用WindowAttention进行特征提取
+#   Repeated basic module for each stage
+#   WindowAttention will be used here for feature extraction
 #-------------------------------------------------------#
 class SwinTransformerBlock(nn.Module):
     def __init__(self, dim, input_resolution, num_heads, window_size=7, shift_size=0,
@@ -341,14 +341,14 @@ class SwinTransformerBlock(nn.Module):
 
         if self.shift_size > 0:
             #----------------------------------------------------------------#
-            #   由于进行特征提取时，会对输入的特征层进行的平移
-            #   如：
+            #   Since the input feature layer is shifted during feature extraction
+            #   For example:
             #   [                                   [
             #       [1, 2, 3],                          [5, 6, 4],   
             #       [4, 5, 6],          -->             [8, 9, 7],
             #       [7, 8, 9],                          [1, 2, 3],
             #   ]                                   ]
-            #   这一步的作用就是使得平移后的区域块只计算自己部分的注意力机制
+            #   The purpose of this step is to make the shifted area block only calculate its own attention mechanism
             #----------------------------------------------------------------#
             H, W = self.input_resolution
             _H, _W  =  _make_divisible(H, self.window_size), _make_divisible(W, self.window_size),
@@ -389,7 +389,7 @@ class SwinTransformerBlock(nn.Module):
         x       = F.interpolate(x, [_H, _W], mode='bicubic', align_corners=False).permute(0, 2, 3, 1)
 
         #-----------------------------------------------#
-        #   进行特征层的平移
+        #   Perform feature layer shifting
         #-----------------------------------------------#
         if self.shift_size > 0:
             shifted_x = torch.roll(x, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2))
@@ -416,7 +416,7 @@ class SwinTransformerBlock(nn.Module):
         shifted_x = window_reverse(attn_windows, self.window_size, _H, _W)  # B H' W' C
 
         #-----------------------------------------------#
-        #   将特征层平移回来
+        #   Shift the feature layer back
         #-----------------------------------------------#
         if self.shift_size > 0:
             x = torch.roll(shifted_x, shifts=(self.shift_size, self.shift_size), dims=(1, 2))
@@ -439,8 +439,8 @@ class SwinTransformerBlock(nn.Module):
         return x
 
 #-------------------------------------------------------#
-#   对输入进来的特征层进行高和宽的压缩
-#   进行跨特征点的特征提取，提取完成后进行堆叠。
+#   Compress the height and width of the input feature layer
+#   Perform cross-feature point feature extraction, and stack after extraction is complete.
 #-------------------------------------------------------#
 class PatchMerging(nn.Module):
     def __init__(self, input_resolution, dim, norm_layer=nn.LayerNorm):
@@ -603,7 +603,7 @@ class SwinTransformer(nn.Module):
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
 
         #---------------------------------------------------------------#
-        #   构建swin-transform的每个阶段
+        #   Build each stage of swin-transform
         #   bs, 3136, 96 -> bs, 784, 192 -> bs, 196, 384 -> bs, 49, 768
         #---------------------------------------------------------------#
         self.layers = nn.ModuleList()

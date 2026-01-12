@@ -1,7 +1,7 @@
 '''
-predict.py有几个注意点
-1、无法进行批量预测，如果想要批量预测，可以利用os.listdir()遍历文件夹，利用Image.open打开图片文件进行预测。
-2、如果想要将预测结果保存成txt，可以利用open打开txt文件，使用write方法写入txt，可以参考一下txt_annotation.py文件。
+predict.py Notes
+1. Cannot perform batch prediction. If you want batch prediction, you can use os.listdir() to traverse the folder and use Image.open to open image files for prediction.
+2. If you want to save the prediction results as txt, you can use open to open the txt file and use the write method to write to txt. You can refer to the txt_annotation.py file.
 '''
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -27,70 +27,71 @@ count = 0
 #         plt.title('Class:%s Probability:%.3f' %(class_name, probability))
 
 
-# 图片文件夹路径
+# Image folder path
 img_folder = ['temp_present']
 
-save_dir = '88888'  # 指定保存文件夹
+save_dir = '88888'  # Specify save folder
 
-# 确保保存目录存在
+# Ensure save directory exists
 os.makedirs(save_dir, exist_ok=True)
 
 for i_name in img_folder:
-    # 遍历文件夹中的所有图片
-    sub_dir = os.path.join(save_dir, i_name)  # 创建子文件夹路径
-    os.makedirs(sub_dir, exist_ok=True)  # 创建子文件夹，如果已存在则不报错
+    # Traverse all images in the folder
+    sub_dir = os.path.join(save_dir, i_name)  # Create subfolder path
+    os.makedirs(sub_dir, exist_ok=True)  # Create subfolder, no error if it already exists
     for img_filename in os.listdir(i_name):
-        if img_filename.lower().endswith(('.png', '.jpg', '.jpeg')):  # 只处理图片文件
+        if img_filename.lower().endswith(('.png', '.jpg', '.jpeg')):  # Only process image files
             img_path = os.path.join(i_name, img_filename)
             try:
-                # 打开图片
+                # Open image
                 image = Image.open(img_path)
             except Exception as e:
                 print('Error opening image! Try again:', e)
                 continue
             else:
-                # 检测类名和概率
+                # Detect class name and probability
                 class_name, probability = classfication.detect_image(image)
                 
-                # 获取Grad-CAM图像
+                # Get Grad-CAM image
                 bbb = classfication.get_grad_cam(image)
             
-                # 绘制图像
+                # Draw image
                 plt.imshow(bbb)
                 plt.title(f'Class: {class_name}; Probability: {probability:.3f}')
-                plt.axis('off')  # 关闭坐标轴
+                plt.axis('off')  # Turn off axes
 
-                # 保存图像到对应的子文件夹中
-                save_path = os.path.join(sub_dir, img_filename)  # 修改保存路径为子文件夹下的路径
+                # Save image to corresponding subfolder
+                save_path = os.path.join(sub_dir, img_filename)  # Modify save path to path under subfolder
                 plt.savefig(save_path, bbox_inches='tight', pad_inches=0.1)
-                plt.close()  # 关闭当前图表以释放内存
+                plt.close()  # Close current chart to release memory
 
 # for i_name in img_folder:
-#     # 遍历文件夹中的所有图片
+#     # Traverse all images in the folder
 #     for img_filename in os.listdir(i_name):
-#         if img_filename.lower().endswith(('.png', '.jpg', '.jpeg')):  # 只处理图片文件
+#         if img_filename.lower().endswith(('.png', '.jpg', '.jpeg')):  # Only process image files
 #             img_path = os.path.join(i_name, img_filename)
 #         try:
-#             # 打开图片
+#             # Open image
 #             image = Image.open(img_path)
 #         except Exception as e:
 #             print('Error opening image! Try again:', e)
 #             continue
 #         else:
-#             # 检测类名和概率
+#             # Detect class name and probability
 #             class_name, probability = classfication.detect_image(image)
 #             # print('Class Name:', class_name)
 #             # print('Probability:', probability)
 
-#             # 获取Grad-CAM图像
+#             # Get Grad-CAM image
 #             bbb = classfication.get_grad_cam(image)
         
-#             # 绘制图像
+#             # Draw image
 #             plt.imshow(bbb)
 #             plt.title(f'Class: {class_name}; Probability: {probability:.3f}')
-#             plt.axis('off')  # 关闭坐标轴
+#             plt.axis('off')  # Turn off axes
 
-#             # 保存图像
+#             # Save image
 #             save_path = os.path.join(save_dir, os.path.basename(img_path))
 #             plt.savefig(save_path, bbox_inches='tight', pad_inches=0.1)
-#             plt.close()  # 关闭当前图表以释放内存
+#             plt.close()  # Close current chart to release memory
+

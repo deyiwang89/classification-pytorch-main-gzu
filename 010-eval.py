@@ -12,27 +12,27 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 #------------------------------------------------------#
-#   test_annotation_path    测试图片路径和标签
+#   test_annotation_path    Test image path and labels
 #------------------------------------------------------#
 test_annotation_path    = 'cls_test.txt'
 #------------------------------------------------------#
-#   metrics_out_path        指标保存的文件夹
+#   metrics_out_path        Folder to save metrics
 #------------------------------------------------------#
 metrics_out_path        = "metrics_out"
 
 class Eval_Classification(Classification):
     def detect_image(self, image):        
         #---------------------------------------------------------#
-        #   在这里将图像转换成RGB图像，防止灰度图在预测时报错。
-        #   代码仅仅支持RGB图像的预测，所有其它类型的图像都会转化成RGB
+        #   Convert the image to RGB here to prevent errors when predicting grayscale images.
+        #   The code only supports RGB image prediction, all other types of images will be converted to RGB
         #---------------------------------------------------------#
         image       = cvtColor(image)
         #---------------------------------------------------#
-        #   对图片进行不失真的resize
+        #   Resize the image without distortion
         #---------------------------------------------------#
         image_data  = letterbox_image(image, [self.input_shape[1], self.input_shape[0]], self.letterbox_image)
         #---------------------------------------------------------#
-        #   归一化+添加上batch_size维度+转置
+        #   Normalize + Add batch_size dimension + Transpose
         #---------------------------------------------------------#
         image_data  = np.transpose(np.expand_dims(preprocess_input(np.array(image_data, np.float32)), 0), (0, 3, 1, 2))
 
@@ -41,7 +41,7 @@ class Eval_Classification(Classification):
             if self.cuda:
                 photo = photo.cuda()
             #---------------------------------------------------#
-            #   图片传入网络进行预测
+            #   Pass image to network for prediction
             #---------------------------------------------------#
             preds   = torch.softmax(self.model(photo)[0], dim=-1).cpu().numpy()
 
@@ -61,9 +61,9 @@ if __name__ == "__main__":
     print("mean Recall = %.2f%%" % (np.mean(Recall)*100))
     print("mean Precision = %.2f%%" % (np.mean(Precision)*100))
     
-    # 打开文件以写入模式
+    # Open file in write mode
     with open('metrics_out\\result.txt', 'w') as file:
-        # 将信息写入文件
+        # Write information to file
         file.write("top-1 accuracy = %.2f%%\n" % (top1*100))
         file.write("top-5 accuracy = %.2f%%\n" % (top5*100))
         file.write("mean Recall = %.2f%%\n" % (np.mean(Recall)*100))
@@ -73,70 +73,70 @@ if __name__ == "__main__":
 
     path = 'metrics_out\\confusion_matrix.csv'
     # print(os.path.dirname(path))
-    # 读取CSV文件
+    # Read CSV file
     data = pd.read_csv(path, index_col=0)
 
-    # 提取类别名称
+    # Extract class names
     classes = data.columns.tolist()
 
-    # 转换为 NumPy 数组
+    # Convert to NumPy array
     confusion_matrix = data.values
 
-    # 创建热力图
+    # Create heatmap
     plt.figure(figsize=(24, 20))
     sns.heatmap(confusion_matrix, annot=True, fmt='g', cmap='Blues', 
                 xticklabels=classes, yticklabels=classes)
 
-    # 设置标题和标签
+    # Set title and labels
     plt.title('Confusion Matrix')
     plt.xlabel('Predicted Label')
     plt.ylabel('True Label')
 
-    # 旋转标签
-    plt.xticks(rotation=45, ha='right')  # x轴标签旋转45度
-    plt.yticks(rotation=0)  # y轴标签不旋转
+    # Rotate labels
+    plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels by 45 degrees
+    plt.yticks(rotation=0)  # Do not rotate y-axis labels
 
-    # 保存图像，分辨率为300 dpi
+    # Save image with 300 dpi resolution
     cm_img_path = os.path.join(os.path.dirname(path),'confusion_matrix.png')
     plt.savefig(cm_img_path, dpi=300)
 
 
 
 
-    # 计算整体准确率
-    correct_predictions = np.sum(np.diag(confusion_matrix))  # 对角线元素之和
-    total_samples = np.sum(confusion_matrix)  # 所有样本的数量
-    overall_accuracy = correct_predictions / total_samples  # 计算整体准确率
+    # Calculate overall accuracy
+    correct_predictions = np.sum(np.diag(confusion_matrix))  # Sum of diagonal elements
+    total_samples = np.sum(confusion_matrix)  # Number of all samples
+    overall_accuracy = correct_predictions / total_samples  # Calculate overall accuracy
     print(correct_predictions ,total_samples)
-    print(f"整体准确率为 {overall_accuracy:.4f}")  # 输出结果，保留两位小数
+    print(f"Overall accuracy is {overall_accuracy:.4f}")  # Output result, keeping two decimal places
 
-    # 存储每个类别的准确率和召回率
+    # Store precision and recall for each class
     precision_list = []
     recall_list = []
 
     for i in range(len(classes)):
-        tp = confusion_matrix[i, i]  # 真正例
-        fp = np.sum(confusion_matrix[:, i]) - tp  # 假正例
-        fn = np.sum(confusion_matrix[i, :]) - tp  # 假负例
+        tp = confusion_matrix[i, i]  # True Positive
+        fp = np.sum(confusion_matrix[:, i]) - tp  # False Positive
+        fn = np.sum(confusion_matrix[i, :]) - tp  # False Negative
         
-        # 计算准确率和召回率
+        # Calculate precision and recall
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
         
         precision_list.append(precision)
         recall_list.append(recall)
 
-    # 计算宏平均、微平均和加权平均
-    macro_precision = np.mean(precision_list)  # 宏平均
-    macro_recall = np.mean(recall_list)        # 宏平均
+    # Calculate macro average, micro average and weighted average
+    macro_precision = np.mean(precision_list)  # Macro Average
+    macro_recall = np.mean(recall_list)        # Macro Average
 
-    micro_precision = np.sum(precision_list) / len(classes)  # 微平均
-    micro_recall = np.sum(recall_list) / len(classes)        # 微平均
+    micro_precision = np.sum(precision_list) / len(classes)  # Micro Average
+    micro_recall = np.sum(recall_list) / len(classes)        # Micro Average
 
-    weighted_precision = np.average(precision_list, weights=np.sum(confusion_matrix, axis=1))  # 加权平均
-    weighted_recall = np.average(recall_list, weights=np.sum(confusion_matrix, axis=1))        # 加权平均
+    weighted_precision = np.average(precision_list, weights=np.sum(confusion_matrix, axis=1))  # Weighted Average
+    weighted_recall = np.average(recall_list, weights=np.sum(confusion_matrix, axis=1))        # Weighted Average
 
-    # 输出平均值
-    print(f"宏平均准确率：{macro_precision:.4f}，宏平均召回率：{macro_recall:.4f}")
-    print(f"微平均准确率：{micro_precision:.4f}，微平均召回率：{micro_recall:.4f}")
-    print(f"加权平均准确率：{weighted_precision:.4f}，加权平均召回率：{weighted_recall:.4f}")
+    # Output averages
+    print(f"Macro Average Precision: {macro_precision:.4f}, Macro Average Recall: {macro_recall:.4f}")
+    print(f"Micro Average Precision: {micro_precision:.4f}, Micro Average Recall: {micro_recall:.4f}")
+    print(f"Weighted Average Precision: {weighted_precision:.4f}, Weighted Average Recall: {weighted_recall:.4f}")

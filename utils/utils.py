@@ -9,8 +9,8 @@ from .utils_aug import resize, center_crop
 
 
 #---------------------------------------------------------#
-#   将图像转换成RGB图像，防止灰度图在预测时报错。
-#   代码仅仅支持RGB图像的预测，所有其它类型的图像都会转化成RGB
+#   Convert the image to RGB here to prevent errors when predicting grayscale images.
+#   The code only supports RGB image prediction, all other types of images will be converted to RGB
 #---------------------------------------------------------#
 def cvtColor(image):
     if len(np.shape(image)) == 3 and np.shape(image)[2] == 3:
@@ -20,7 +20,7 @@ def cvtColor(image):
         return image 
 
 #---------------------------------------------------#
-#   对输入图像进行resize
+#   Resize the input image
 #---------------------------------------------------#
 def letterbox_image(image, size, letterbox_image):
     w, h = size
@@ -43,7 +43,7 @@ def letterbox_image(image, size, letterbox_image):
     return new_image
 
 #---------------------------------------------------#
-#   获得类
+#   Get classes
 #---------------------------------------------------#
 def get_classes(classes_path):
     with open(classes_path, encoding='utf-8') as f:
@@ -52,7 +52,7 @@ def get_classes(classes_path):
     return class_names, len(class_names)
 
 #----------------------------------------#
-#   预处理训练图片
+#   Preprocess training images
 #----------------------------------------#
 def preprocess_input(x):
     # x /= 127.5
@@ -72,7 +72,7 @@ def show_config(**kwargs):
     print('-' * 70)
 
 #---------------------------------------------------#
-#   获得学习率
+#   Get learning rate
 #---------------------------------------------------#
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:

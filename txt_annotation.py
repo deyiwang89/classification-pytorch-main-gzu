@@ -4,14 +4,14 @@ from os import getcwd
 from utils.utils import get_classes
 
 #-------------------------------------------------------------------#
-#   classes_path    指向model_data下的txt，与自己训练的数据集相关 
-#                   训练前一定要修改classes_path，使其对应自己的数据集
-#                   txt文件中是自己所要去区分的种类
-#                   与训练和预测所用的classes_path一致即可
+#   classes_path    Points to the txt under model_data, related to your own training dataset
+#                   Make sure to modify classes_path before training to match your own dataset
+#                   The txt file contains the classes you want to distinguish
+#                   It should be consistent with the classes_path used for training and prediction
 #-------------------------------------------------------------------#
 classes_path    = 'model_data/cls_classes.txt'
 #-------------------------------------------------------#
-#   datasets_path   指向数据集所在的路径
+#   datasets_path   Points to the path where the dataset is located
 #-------------------------------------------------------#
 datasets_path   = 'datasets'
 

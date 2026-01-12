@@ -1,152 +1,148 @@
-## Classification：分类模型在Pytorch当中的实现
+## Classification: Implementation of Classification Models in PyTorch
 ---
 
-## 目录
-1. [仓库更新 Top News](#仓库更新)
-2. [所需环境 Environment](#所需环境)
-3. [文件下载 Download](#文件下载)
-4. [训练步骤 How2train](#训练步骤)
-5. [预测步骤 How2predict](#预测步骤)
-6. [评估步骤 How2eval](#评估步骤)
-7. [参考资料 Reference](#Reference)
+## Table of Contents
+1. [Environment](#Environment)
+2. [Download](#Download)
+3. [How2train](#How2train)
+4. [How2predict](#How2predict)
+5. [How2eval](#How2eval)
+6. [Reference](#Reference)
 
-## Top News
-**`2022-03`**:**进行了大幅度的更新，支持step、cos学习率下降法、支持adam、sgd优化器选择、支持学习率根据batch_size自适应调整。**  
-BiliBili视频中的原仓库地址为：https://github.com/bubbliiiing/classification-pytorch/tree/bilibili
 
-**`2021-01`**:**仓库创建，支持模型训练，大量的注释，多个可调整参数。支持top1-top5的准确度评价。**   
 
-## 所需环境
+## Environment
 pytorch == 1.2.0
 
-## 文件下载
-训练所需的预训练权重都可以在百度云下载。     
-链接: https://pan.baidu.com/s/18Ze7YMvM5GpbTlekYO8bcA     
-提取码: 5wym   
+## Download
+Pre-trained weights required for training can be downloaded from Baidu Cloud.
+Link: https://pan.baidu.com/s/18Ze7YMvM5GpbTlekYO8bcA
+Extraction Code: 5wym
 
-训练所用的示例猫狗数据集也可以在百度云下载。   
-链接: https://pan.baidu.com/s/1hYBNG0TnGIeWw1-SwkzqpA     
-提取码: ass8    
+The dataset used for training can be obtained by contacting Yinting Lv. Email: 2112332016@e.gzhu.edu.cn
 
-## 训练步骤
-1. datasets文件夹下存放的图片分为两部分，train里面是训练图片，test里面是测试图片。  
-2. 在训练之前需要首先准备好数据集，在train或者test文件里里面创建不同的文件夹，每个文件夹的名称为对应的类别名称，文件夹下面的图片为这个类的图片。文件格式可参考如下：
+
+## How2train
+1. The images stored in the `datasets` folder are divided into two parts: `train` contains training images, and `test` contains test images.
+2. Before training, you need to prepare the dataset. Create different folders inside the `train` or `test` directories, where each folder name corresponds to the class name, and the images inside are for that class. The file structure is as follows:
 ```
 |-datasets
     |-train
-        |-cat
+        |-class1
             |-123.jpg
             |-234.jpg
-        |-dog
+        |-class2
             |-345.jpg
             |-456.jpg
         |-...
     |-test
-        |-cat
+        |- class1
             |-567.jpg
             |-678.jpg
-        |-dog
+        |- class2
             |-789.jpg
             |-890.jpg
         |-...
 ```
-3. 在准备好数据集后，需要在根目录运行txt_annotation.py生成训练所需的cls_train.txt，运行前需要修改其中的classes，将其修改成自己需要分的类。   
-4. 之后修改model_data文件夹下的cls_classes.txt，使其也对应自己需要分的类。  
-5. 在train.py里面调整自己要选择的网络和权重后，就可以开始训练了！  
+3. After preparing the dataset, run `txt_annotation.py` in the root directory to generate `cls_train.txt` required for training. Before running, modify the `classes` in the script to match your specific classes.
+4. Then modify `cls_classes.txt` in the `model_data` folder to also correspond to your specific classes.
+5. After adjusting the network and weights you want to choose in `train.py`, you can start training!
 
-## 预测步骤
-### a、使用预训练权重
-1. 下载完库后解压，model_data已经存在一个训练好的猫狗模型mobilenet025_catvsdog.h5，运行predict.py，输入  
+## How2predict
+### a. Using Pre-trained Weights
+1. After downloading and unzipping the repository, there is already a trained model in `model_data`. Run `predict.py` and input:
 ```python
-img/cat.jpg
+img/123.jpg
 ```
-### b、使用自己训练的权重
-1. 按照训练步骤训练。  
-2. 在classification.py文件里面，在如下部分修改model_path、classes_path、backbone和alpha使其对应训练好的文件；**model_path对应logs文件夹下面的权值文件，classes_path是model_path对应分的类，backbone对应使用的主干特征提取网络，alpha是当使用mobilenet的alpha值**。  
+### b. Using Your Own Trained Weights
+1. Train the model following the "How2train" steps.
+2. In the `classification.py` file, modify `model_path`, `classes_path`, `backbone`, and `alpha` in the following section to match your trained files. **`model_path` corresponds to the weight file in the `logs` folder, `classes_path` is the class file corresponding to `model_path`, `backbone` corresponds to the backbone feature extraction network used, and `alpha` is the alpha value when using MobileNet.**
 ```python
 _defaults = {
     #--------------------------------------------------------------------------#
-    #   使用自己训练好的模型进行预测一定要修改model_path和classes_path！
-    #   model_path指向logs文件夹下的权值文件，classes_path指向model_data下的txt
-    #   如果出现shape不匹配，同时要注意训练时的model_path和classes_path参数的修改
+    #   To predict using your own trained model, you must modify model_path and classes_path!
+    #   model_path points to the weight file in the logs folder, classes_path points to the txt in model_data
+    #   If shape mismatch occurs, pay attention to modifying model_path and classes_path parameters during training
     #--------------------------------------------------------------------------#
-    "model_path"    : 'model_data/mobilenet_catvsdog.pth',
+    "model_path"    : 'logs/best.pth',
     "classes_path"  : 'model_data/cls_classes.txt',
     #--------------------------------------------------------------------#
-    #   输入的图片大小
+    #   Input image size
     #--------------------------------------------------------------------#
     "input_shape"   : [224, 224],
     #--------------------------------------------------------------------#
-    #   所用模型种类：
-    #   mobilenet、resnet50、vgg16是常用的分类网络
-    #   cspdarknet53用于示例如何使用mini_imagenet训练自己的预训练权重
+    #   Model type used:
+    #   mobilenet, resnet50, vgg16 are commonly used classification networks
+    #   cspdarknet53 is used to demonstrate how to use mini_imagenet to train your own pre-trained weights
     #--------------------------------------------------------------------#
     "backbone"      : 'mobilenet',
     #-------------------------------#
-    #   是否使用Cuda
-    #   没有GPU可以设置成False
+    #   Whether to use Cuda
+    #   Set to False if no GPU is available
     #-------------------------------#
     "cuda"          : True
 }
 ```
-3. 运行predict.py，输入  
+3. Run `predict.py` and input:
 ```python
 img/cat.jpg
-```  
+```
 
-## 评估步骤
-1. datasets文件夹下存放的图片分为两部分，train里面是训练图片，test里面是测试图片，在评估的时候，我们使用的是test文件夹里面的图片。  
-2. 在评估之前需要首先准备好数据集，在train或者test文件里里面创建不同的文件夹，每个文件夹的名称为对应的类别名称，文件夹下面的图片为这个类的图片。文件格式可参考如下：
+## How2eval
+1. The images stored in the `datasets` folder are divided into two parts: `train` contains training images, and `test` contains test images. During evaluation, we use the images in the `test` folder.
+2. Before evaluation, you need to prepare the dataset. Create different folders inside the `train` or `test` directories, where each folder name corresponds to the class name, and the images inside are for that class. The file structure is as follows:
 ```
 |-datasets
     |-train
-        |-cat
+        |-class1
             |-123.jpg
             |-234.jpg
-        |-dog
+        |-class2
             |-345.jpg
             |-456.jpg
         |-...
     |-test
-        |-cat
+        |- class1
             |-567.jpg
             |-678.jpg
-        |-dog
+        |- class2
             |-789.jpg
             |-890.jpg
         |-...
 ```
-3. 在准备好数据集后，需要在根目录运行txt_annotation.py生成评估所需的cls_test.txt，运行前需要修改其中的classes，将其修改成自己需要分的类。   
-4. 之后在classification.py文件里面修改如下部分model_path、classes_path、backbone和alpha使其对应训练好的文件；**model_path对应logs文件夹下面的权值文件，classes_path是model_path对应分的类，backbone对应使用的主干特征提取网络，alpha是当使用mobilenet的alpha值**。  
+3. After preparing the dataset, run `txt_annotation.py` in the root directory to generate `cls_test.txt` required for evaluation. Before running, modify the `classes` in the script to match your specific classes.
+4. Then modify `model_path`, `classes_path`, `backbone`, and `alpha` in the `classification.py` file to match your trained files. **`model_path` corresponds to the weight file in the `logs` folder, `classes_path` is the class file corresponding to `model_path`, `backbone` corresponds to the backbone feature extraction network used, and `alpha` is the alpha value when using MobileNet.**
 ```python
 _defaults = {
     #--------------------------------------------------------------------------#
-    #   使用自己训练好的模型进行预测一定要修改model_path和classes_path！
-    #   model_path指向logs文件夹下的权值文件，classes_path指向model_data下的txt
-    #   如果出现shape不匹配，同时要注意训练时的model_path和classes_path参数的修改
+    #   To predict using your own trained model, you must modify model_path and classes_path!
+    #   model_path points to the weight file in the logs folder, classes_path points to the txt in model_data
+    #   If shape mismatch occurs, pay attention to modifying model_path and classes_path parameters during training
     #--------------------------------------------------------------------------#
-    "model_path"    : 'model_data/mobilenet_catvsdog.pth',
+    "model_path"    : 'logs/best.pth',
     "classes_path"  : 'model_data/cls_classes.txt',
     #--------------------------------------------------------------------#
-    #   输入的图片大小
+    #   Input image size
     #--------------------------------------------------------------------#
     "input_shape"   : [224, 224],
     #--------------------------------------------------------------------#
-    #   所用模型种类：
-    #   mobilenet、resnet50、vgg16是常用的分类网络
-    #   cspdarknet53用于示例如何使用mini_imagenet训练自己的预训练权重
+    #   Model type used:
+    #   mobilenet, resnet50, vgg16 are commonly used classification networks
+    #   cspdarknet53 is used to demonstrate how to use mini_imagenet to train your own pre-trained weights
     #--------------------------------------------------------------------#
     "backbone"      : 'mobilenet',
     #-------------------------------#
-    #   是否使用Cuda
-    #   没有GPU可以设置成False
+    #   Whether to use Cuda
+    #   Set to False if no GPU is available
     #-------------------------------#
     "cuda"          : True
 }
 ```
-5. 运行eval_top1.py和eval_top5.py来进行模型准确率评估。
+5. Run the corresponding scripts for evaluation or prediction:
+   - **010-eval.py**: Model Evaluation. Calculates Top-1 Accuracy, Top-5 Accuracy, Recall, Precision, and generates a Confusion Matrix. Results are saved in the `metrics_out` folder.
+   - **011-predict.py**: Visual Prediction (Grad-CAM). Predicts single or multiple images and generates heatmaps (Grad-CAM) to show areas the model focuses on. Results are saved in the `88888` folder.
+   - **012-new_predict.py**: Batch Prediction Application. Classifies images in batch, draws bounding boxes and labels (class, probability) on the original images. Results are saved in the `classified_images` folder.
 
 ## Reference
-https://github.com/keras-team/keras-applications   
+https://github.com/keras-team/keras-applications
 https://github.com/bubbliiiing/classification-pytorch
-

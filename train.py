@@ -18,177 +18,178 @@ from utils.utils_fit import fit_one_epoch
 
 if __name__ == "__main__":
     #----------------------------------------------------#
-    #   是否使用Cuda
-    #   没有GPU可以设置成False
+    #   Whether to use Cuda
+    #   Set to False if no GPU is available
     #----------------------------------------------------#
     Cuda            = True
     #---------------------------------------------------------------------#
-    #   distributed     用于指定是否使用单机多卡分布式运行
-    #                   终端指令仅支持Ubuntu。CUDA_VISIBLE_DEVICES用于在Ubuntu下指定显卡。
-    #                   Windows系统下默认使用DP模式调用所有显卡，不支持DDP。
-    #   DP模式：
-    #       设置            distributed = False
-    #       在终端中输入    CUDA_VISIBLE_DEVICES=0,1 python train.py
-    #   DDP模式：
-    #       设置            distributed = True
-    #       在终端中输入    CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=2 train.py
+    #   distributed     Used to specify whether to use single-machine multi-card distributed operation
+    #                   Terminal commands only support Ubuntu. CUDA_VISIBLE_DEVICES is used to specify graphics cards under Ubuntu.
+    #                   Windows system uses DP mode to call all graphics cards by default, DDP is not supported.
+    #   DP mode:
+    #       Settings            distributed = False
+    #       Input in terminal    CUDA_VISIBLE_DEVICES=0,1 python train.py
+    #   DDP mode:
+    #       Settings            distributed = True
+    #       Input in terminal    CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=2 train.py
     #---------------------------------------------------------------------#
     distributed     = False
     #---------------------------------------------------------------------#
-    #   sync_bn     是否使用sync_bn，DDP模式多卡可用
+    #   sync_bn     Whether to use sync_bn, available for multi-card in DDP mode
     #---------------------------------------------------------------------#
     sync_bn         = False
     #---------------------------------------------------------------------#
-    #   fp16        是否使用混合精度训练
-    #               可减少约一半的显存  、 需要pytorch1.7.1以上
+    #   fp16        Whether to use mixed precision training
+    #               Can reduce video memory by about half, requires pytorch 1.7.1 or above
     #---------------------------------------------------------------------#
     fp16            = False
     #----------------------------------------------------#
-    #   训练自己的数据集的时候一定要注意修改classes_path
-    #   修改成自己对应的种类的txt
+    #   When training your own dataset, make sure to modify classes_path
+    #   Modify to the txt file corresponding to your own classes
     #----------------------------------------------------#
     classes_path    = 'model_data/cls_classes.txt' 
     #----------------------------------------------------#
-    #   输入的图片大小
+    #   Input image size
     #----------------------------------------------------#
     input_shape     = [256, 256]
     #------------------------------------------------------#
-    #   所用模型种类：
-    #   mobilenetv2  、 
-    #   resnet18  、 resnet34  、 resnet50  、 resnet101  、 resnet152
-    #   vgg11  、 vgg13  、 vgg16  、 vgg11_bn  、 vgg13_bn  、 vgg16_bn  、 
-    #   vit_b_16   、 
-    #   swin_transformer_tiny   、 swin_transformer_small   、 swin_transformer_base
+    #   Model type used:
+    #   mobilenetv2 , 
+    #   resnet18 , resnet34 , resnet50 , resnet101 , resnet152
+    #   vgg11 , vgg13 , vgg16 , vgg11_bn , vgg13_bn , vgg16_bn , 
+    #   vit_b_16 , 
+    #   swin_transformer_tiny , swin_transformer_small , swin_transformer_base
     #------------------------------------------------------#
-    backbone        = "vit_b_16"
+    backbone        = "resnet34"
     #----------------------------------------------------------------------------------------------------------------------------#
-    #   是否使用主干网络的预训练权重，此处使用的是主干的权重，因此是在模型构建的时候进行加载的。
-    #   如果设置了model_path，则主干的权值无需加载，pretrained的值无意义。
-    #   如果不设置model_path，pretrained = True，此时仅加载主干开始训练。
-    #   如果不设置model_path，pretrained = False，Freeze_Train = Fasle，此时从0开始训练，且没有冻结主干的过程。
+    #   Whether to use the pre-trained weights of the backbone network. Here, the backbone weights are used, so they are loaded during model construction.
+    #   If model_path is set, the backbone weights do not need to be loaded, and the value of pretrained is meaningless.
+    #   If model_path is not set, pretrained = True, then only the backbone is loaded to start training.
+    #   If model_path is not set, pretrained = False, Freeze_Train = False, then training starts from 0, and there is no process of freezing the backbone.
     #----------------------------------------------------------------------------------------------------------------------------#
     pretrained      = True
     #----------------------------------------------------------------------------------------------------------------------------#
-    #   权值文件的下载请看README，可以通过网盘下载。模型的 预训练权重 对不同数据集是通用的，因为特征是通用的。
-    #   模型的 预训练权重 比较重要的部分是 主干特征提取网络的权值部分，用于进行特征提取。
-    #   预训练权重对于99%的情况都必须要用，不用的话主干部分的权值太过随机，特征提取效果不明显，网络训练的结果也不会好
+    #   Please refer to README for downloading weight files, which can be downloaded via Baidu Netdisk. The pre-trained weights of the model are universal for different datasets because features are universal.
+    #   The more important part of the pre-trained weights of the model is the weight part of the backbone feature extraction network, which is used for feature extraction.
+    #   Pre-trained weights must be used in 99% of cases. If not used, the weights of the backbone part are too random, the feature extraction effect is not obvious, and the network training results will not be good.
     #
-    #   如果训练过程中存在中断训练的操作，可以将model_path设置成logs文件夹下的权值文件，将已经训练了一部分的权值再次载入。
-    #   同时修改下方的 冻结阶段 或者 解冻阶段 的参数，来保证模型epoch的连续性。
+    #   If there is an operation to interrupt training during the training process, you can set model_path to the weight file in the logs folder to reload the weights that have been partially trained.
+    #   At the same time, modify the parameters of the Freeze Phase or Unfreeze Phase below to ensure the continuity of the model epoch.
     #   
-    #   当model_path = ''的时候不加载整个模型的权值。
+    #   When model_path = '', the weights of the entire model are not loaded.
     #
-    #   此处使用的是整个模型的权重，因此是在train.py进行加载的，pretrain不影响此处的权值加载。
-    #   如果想要让模型从主干的预训练权值开始训练，则设置model_path = ''，pretrain = True，此时仅加载主干。
-    #   如果想要让模型从0开始训练，则设置model_path = ''，pretrain = Fasle，此时从0开始训练。
+    #   Here, the weights of the entire model are used, so they are loaded in train.py, and pretrain does not affect the weight loading here.
+    #   If you want the model to start training from the pre-trained weights of the backbone, set model_path = '', pretrain = True, and only the backbone is loaded at this time.
+    #   If you want the model to start training from 0, set model_path = '', pretrain = False, and start training from 0 at this time.
     #----------------------------------------------------------------------------------------------------------------------------#
     model_path      = ""
         
     #----------------------------------------------------------------------------------------------------------------------------#
-    #   训练分为两个阶段，分别是冻结阶段和解冻阶段。设置冻结阶段是为了满足机器性能不足的同学的训练需求。
-    #   冻结训练需要的显存较小，显卡非常差的情况下，可设置Freeze_Epoch等于UnFreeze_Epoch，此时仅仅进行冻结训练。
+    #   Training is divided into two phases: the freezing phase and the unfreezing phase. The freezing phase is set to meet the training needs of students with insufficient machine performance.
+    #   Freezing training requires less video memory. In the case of very poor graphics cards, Freeze_Epoch can be set equal to UnFreeze_Epoch, and only freezing training is performed at this time.
     #      
-    #   在此提供若干参数设置建议，各位训练者根据自己的需求进行灵活调整：
-    #   （一）从整个模型的预训练权重开始训练： 
-    #       Adam：
-    #           Init_Epoch = 0，Freeze_Epoch = 50，UnFreeze_Epoch = 100，Freeze_Train = True，optimizer_type = 'adam'，Init_lr = 1e-3。（冻结）
-    #           Init_Epoch = 0，UnFreeze_Epoch = 100，Freeze_Train = False，optimizer_type = 'adam'，Init_lr = 1e-3。（不冻结）
-    #       SGD：
-    #           Init_Epoch = 0，Freeze_Epoch = 50，UnFreeze_Epoch = 200，Freeze_Train = True，optimizer_type = 'sgd'，Init_lr = 1e-2。（冻结）
-    #           Init_Epoch = 0，UnFreeze_Epoch = 200，Freeze_Train = False，optimizer_type = 'sgd'，Init_lr = 1e-2。（不冻结）
-    #       其中：UnFreeze_Epoch可以在100-300之间调整。
-    #   （二）从0开始训练：
-    #       Adam：
-    #           Init_Epoch = 0，UnFreeze_Epoch = 300，Unfreeze_batch_size >= 16，Freeze_Train = False，optimizer_type = 'adam'，Init_lr = 1e-3。（不冻结）
-    #       SGD：
-    #           Init_Epoch = 0，UnFreeze_Epoch = 300，Unfreeze_batch_size >= 16，Freeze_Train = False，optimizer_type = 'sgd'，Init_lr = 1e-2。（不冻结）
-    #       其中：UnFreeze_Epoch尽量不小于300。
-    #   （三）batch_size的设置：
-    #       在显卡能够接受的范围内，以大为好。显存不足与数据集大小无关，提示显存不足（OOM或者CUDA out of memory）请调小batch_size。
-    #       受到BatchNorm层影响，batch_size最小为2，不能为1。
-    #       正常情况下Freeze_batch_size建议为Unfreeze_batch_size的1-2倍。不建议设置的差距过大，因为关系到学习率的自动调整。
+    #   Here are some suggestions for parameter settings. Trainers can adjust them flexibly according to their own needs:
+    #   (1) Start training from the pre-trained weights of the entire model: 
+    #       Adam:
+    #           Init_Epoch = 0, Freeze_Epoch = 50, UnFreeze_Epoch = 100, Freeze_Train = True, optimizer_type = 'adam', Init_lr = 1e-3. (Freeze)
+    #           Init_Epoch = 0, UnFreeze_Epoch = 100, Freeze_Train = False, optimizer_type = 'adam', Init_lr = 1e-3. (No Freeze)
+    #       SGD:
+    #           Init_Epoch = 0, Freeze_Epoch = 50, UnFreeze_Epoch = 200, Freeze_Train = True, optimizer_type = 'sgd', Init_lr = 1e-2. (Freeze)
+    #           Init_Epoch = 0, UnFreeze_Epoch = 200, Freeze_Train = False, optimizer_type = 'sgd', Init_lr = 1e-2. (No Freeze)
+    #       Where: UnFreeze_Epoch can be adjusted between 100-300.
+    #   (2) Start training from 0:
+    #       Adam:
+    #           Init_Epoch = 0, UnFreeze_Epoch = 300, Unfreeze_batch_size >= 16, Freeze_Train = False, optimizer_type = 'adam', Init_lr = 1e-3. (No Freeze)
+    #       SGD:
+    #           Init_Epoch = 0, UnFreeze_Epoch = 300, Unfreeze_batch_size >= 16, Freeze_Train = False, optimizer_type = 'sgd', Init_lr = 1e-2. (No Freeze)
+    #       Where: UnFreeze_Epoch should generally not be less than 300.
+    #   (3) Setting of batch_size:
+    #       Within the range acceptable by the graphics card, larger is better. Insufficient video memory has nothing to do with the dataset size. If prompted with insufficient video memory (OOM or CUDA out of memory), please reduce batch_size.
+    #       Affected by the BatchNorm layer, batch_size must be at least 2 and cannot be 1.
+    #       Under normal circumstances, Freeze_batch_size is recommended to be 1-2 times Unfreeze_batch_size. It is not recommended to set the gap too large, because it relates to the automatic adjustment of the learning rate.
     #----------------------------------------------------------------------------------------------------------------------------#
     #------------------------------------------------------------------#
-    #   冻结阶段训练参数
-    #   此时模型的主干被冻结了，特征提取网络不发生改变
-    #   占用的显存较小，仅对网络进行微调
-    #   Init_Epoch          模型当前开始的训练世代，其值可以大于Freeze_Epoch，如设置：
-    #                       Init_Epoch = 60  、 Freeze_Epoch = 50  、 UnFreeze_Epoch = 100
-    #                       会跳过冻结阶段，直接从60代开始，并调整对应的学习率。
-    #                       （断点续练时使用）
-    #   Freeze_Epoch        模型冻结训练的Freeze_Epoch
-    #                       (当Freeze_Train=False时失效)
-    #   Freeze_batch_size   模型冻结训练的batch_size
-    #                       (当Freeze_Train=False时失效)
+    #   Freezing phase training parameters
+    #   At this time, the backbone of the model is frozen, and the feature extraction network does not change
+    #   Occupies less video memory, only fine-tunes the network
+    #   Init_Epoch          The current starting training epoch of the model, its value can be greater than Freeze_Epoch, e.g., setting:
+    #                       Init_Epoch = 60 , Freeze_Epoch = 50 , UnFreeze_Epoch = 100
+    #                       Will skip the freezing phase, start directly from epoch 60, and adjust the corresponding learning rate.
+    #                       (Used when resuming training from a breakpoint)
+    #   Freeze_Epoch        Freeze_Epoch for model freezing training
+    #                       (Invalid when Freeze_Train=False)
+    #   Freeze_batch_size   batch_size for model freezing training
+    #                       (Invalid when Freeze_Train=False)
     #------------------------------------------------------------------#
     Init_Epoch          = 0
     Freeze_Epoch        = 0
     Freeze_batch_size   = 16
     #------------------------------------------------------------------#
-    #   解冻阶段训练参数
-    #   此时模型的主干不被冻结了，特征提取网络会发生改变
-    #   占用的显存较大，网络所有的参数都会发生改变
-    #   UnFreeze_Epoch          模型总共训练的epoch
-    #   Unfreeze_batch_size     模型在解冻后的batch_size
+    #   Unfreezing phase training parameters
+    #   At this time, the backbone of the model is not frozen, and the feature extraction network will change
+    #   Occupies more video memory, all parameters of the network will change
+    #   UnFreeze_Epoch          Total training epochs of the model
+    #   Unfreeze_batch_size     batch_size of the model after unfreezing
     #------------------------------------------------------------------#
-    UnFreeze_Epoch      = 300
+    UnFreeze_Epoch      = 1
     Unfreeze_batch_size = 16
     #------------------------------------------------------------------#
-    #   Freeze_Train    是否进行冻结训练
-    #                   默认先冻结主干训练后解冻训练。
+    #   Freeze_Train    Whether to perform freezing training
+    #                   Default is to freeze the backbone training first and then unfreeze training.
     #------------------------------------------------------------------#
     Freeze_Train        = True
     
     #------------------------------------------------------------------#
-    #   其它训练参数：学习率  、 优化器  、 学习率下降有关
+    #   Other training parameters: learning rate, optimizer, learning rate decay related
     #------------------------------------------------------------------#
     #------------------------------------------------------------------#
-    #   Init_lr         模型的最大学习率
-    #                   当使用Adam优化器时建议设置  Init_lr=1e-3
-    #                   当使用SGD优化器时建议设置   Init_lr=1e-2
-    #   Min_lr          模型的最小学习率，默认为最大学习率的0.01
+    #   Init_lr         Maximum learning rate of the model
+    #                   When using Adam optimizer, it is recommended to set Init_lr=1e-3
+    #                   When using SGD optimizer, it is recommended to set Init_lr=1e-2
+    #   Min_lr          Minimum learning rate of the model, default is 0.01 of the maximum learning rate
     #------------------------------------------------------------------#
     Init_lr             = 1e-3
     Min_lr              = Init_lr * 0.01
     #------------------------------------------------------------------#
-    #   optimizer_type  使用到的优化器种类，可选的有adam  、 sgd
-    #                   当使用Adam优化器时建议设置  Init_lr=1e-3
-    #                   当使用SGD优化器时建议设置   Init_lr=1e-2
-    #   momentum        优化器内部使用到的momentum参数
-    #   weight_decay    权值衰减，可防止过拟合
-    #                   使用adam优化器时会有错误，建议设置为0
+    #   optimizer_type  Type of optimizer used, options: adam, sgd
+    #                   When using Adam optimizer, it is recommended to set Init_lr=1e-3
+    #                   When using SGD optimizer, it is recommended to set Init_lr=1e-2
+    #   momentum        momentum parameter used inside the optimizer
+    #   weight_decay    Weight decay, can prevent overfitting
+    #                   There will be errors when using adam optimizer, recommended to set to 0
     #------------------------------------------------------------------#
     optimizer_type      = "adam"
     momentum            = 0.9
     weight_decay        = 0
     #------------------------------------------------------------------#
-    #   lr_decay_type   使用到的学习率下降方式，可选的有step  、 cos
+    #   lr_decay_type   Learning rate decay method used, options: step, cos
     #------------------------------------------------------------------#
     lr_decay_type       = "cos"
     #------------------------------------------------------------------#
-    #   save_period     多少个epoch保存一次权值
+    #   save_period     How many epochs to save weights once
     #------------------------------------------------------------------#
     save_period         = 10
     #------------------------------------------------------------------#
-    #   save_dir        权值与日志文件保存的文件夹
+    #   save_dir        Folder to save weights and log files
     #------------------------------------------------------------------#
     save_dir            = 'logs'
     #------------------------------------------------------------------#
-    #   num_workers     用于设置是否使用多线程读取数据
-    #                   开启后会加快数据读取速度，但是会占用更多内存
-    #                   内存较小的电脑可以设置为2或者0  
+    #   num_workers     Used to set whether to use multi-threading to read data
+    #                   Enabling it will speed up data reading, but will occupy more memory
+    #                   Computers with small memory can be set to 2 or 0
     #------------------------------------------------------------------#
     num_workers         = 4
 
     #------------------------------------------------------#
-    #   train_annotation_path   训练图片路径和标签
-    #   test_annotation_path    验证图片路径和标签（使用测试集代替验证集）
+    #   train_annotation_path   Training image path and labels
+    #   test_annotation_path    Validation image path and labels (using test set instead of validation set)
     #------------------------------------------------------#
     train_annotation_path   = "cls_train.txt"
     test_annotation_path    = 'cls_test.txt'
 
+
     #------------------------------------------------------#
-    #   设置用到的显卡
+    #   Set the graphics card used
     #------------------------------------------------------#
     ngpus_per_node  = torch.cuda.device_count()
     if distributed:
@@ -205,7 +206,7 @@ if __name__ == "__main__":
         rank            = 0
 
     #----------------------------------------------------#
-    #   下载预训练权重
+    #   Download pre-trained weights
     #----------------------------------------------------#
     if pretrained:
         if distributed:
@@ -216,7 +217,7 @@ if __name__ == "__main__":
             download_weights(backbone)
 
     #------------------------------------------------------#
-    #   获取classes
+    #   Get classes
     #------------------------------------------------------#
     class_names, num_classes = get_classes(classes_path)
 
@@ -229,13 +230,13 @@ if __name__ == "__main__":
         weights_init(model)
     if model_path != "":
         #------------------------------------------------------#
-        #   权值文件请看README，百度网盘下载
+        #   Please check README for weight files, download from Baidu Netdisk
         #------------------------------------------------------#
         if local_rank == 0:
             print('Load weights {}.'.format(model_path))
         
         #------------------------------------------------------#
-        #   根据预训练权重的Key和模型的Key进行加载
+        #   Load based on the Key of pre-trained weights and the Key of the model
         #------------------------------------------------------#
         model_dict      = model.state_dict()
         pretrained_dict = torch.load(model_path, map_location = device)
@@ -249,15 +250,15 @@ if __name__ == "__main__":
         model_dict.update(temp_dict)
         model.load_state_dict(model_dict)
         #------------------------------------------------------#
-        #   显示没有匹配上的Key
+        #   Show Keys that were not matched
         #------------------------------------------------------#
         if local_rank == 0:
             print("\nSuccessful Load Key:", str(load_key)[:500], "……\nSuccessful Load Key Num:", len(load_key))
             print("\nFail To Load Key:", str(no_load_key)[:500], "……\nFail To Load Key num:", len(no_load_key))
-            print("\n\033[1;33;44m温馨提示，head部分没有载入是正常现象，Backbone部分没有载入是错误的。\033[0m")
+            print("\n\033[1;33;44mTips: It is normal if the head part is not loaded, but it is wrong if the Backbone part is not loaded.\033[0m")
 
     #----------------------#
-    #   记录Loss
+    #   Record Loss
     #----------------------#
     if local_rank == 0:
         loss_history = LossHistory(save_dir, model, input_shape=input_shape)
@@ -265,8 +266,8 @@ if __name__ == "__main__":
         loss_history = None
         
     #------------------------------------------------------------------#
-    #   torch 1.2不支持amp，建议使用torch 1.7.1及以上正确使用fp16
-    #   因此torch1.2这里显示"could not be resolve"
+    #   torch 1.2 does not support amp, it is recommended to use torch 1.7.1 and above to use fp16 correctly
+    #   Therefore, torch 1.2 displays "could not be resolve" here
     #------------------------------------------------------------------#
     if fp16:
         from torch.cuda.amp import GradScaler as GradScaler
@@ -276,7 +277,7 @@ if __name__ == "__main__":
 
     model_train     = model.train()
     #----------------------------#
-    #   多卡同步Bn
+    #   Multi-card sync Bn
     #----------------------------#
     if sync_bn and ngpus_per_node > 1 and distributed:
         model_train = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model_train)
@@ -286,7 +287,7 @@ if __name__ == "__main__":
     if Cuda:
         if distributed:
             #----------------------------#
-            #   多卡平行运行
+            #   Multi-card parallel running
             #----------------------------#
             model_train = model_train.cuda(local_rank)
             model_train = torch.nn.parallel.DistributedDataParallel(model_train, device_ids=[local_rank], find_unused_parameters=True)
@@ -296,7 +297,7 @@ if __name__ == "__main__":
             model_train = model_train.cuda()
         
     #---------------------------#
-    #   读取数据集对应的txt
+    #   Read the txt corresponding to the dataset
     #---------------------------#
     with open(train_annotation_path, encoding='utf-8') as f:
         train_lines = f.readlines()
@@ -316,42 +317,42 @@ if __name__ == "__main__":
             save_period = save_period, save_dir = save_dir, num_workers = num_workers, num_train = num_train, num_val = num_val
         )
     #---------------------------------------------------------#
-    #   总训练世代指的是遍历全部数据的总次数
-    #   总训练步长指的是梯度下降的总次数 
-    #   每个训练世代包含若干训练步长，每个训练步长进行一次梯度下降。
-    #   此处仅建议最低训练世代，上不封顶，计算时只考虑了解冻部分
+    #   Total training epochs refers to the total number of times traversing all data
+    #   Total training steps refers to the total number of gradient descents
+    #   Each training epoch contains several training steps, and each training step performs one gradient descent.
+    #   Here only the minimum training epoch is suggested, there is no upper limit, and only the unfreezing part is considered in the calculation
     #----------------------------------------------------------#
     wanted_step = 3e4 if optimizer_type == "sgd" else 1e4
     total_step  = num_train // Unfreeze_batch_size * UnFreeze_Epoch
     if total_step <= wanted_step:
         wanted_epoch = wanted_step // (num_train // Unfreeze_batch_size) + 1
-        print("\n\033[1;33;44m[Warning] 使用%s优化器时，建议将训练总步长设置到%d以上。\033[0m"%(optimizer_type, wanted_step))
-        print("\033[1;33;44m[Warning] 本次运行的总训练数据量为%d，Unfreeze_batch_size为%d，共训练%d个Epoch，计算出总训练步长为%d。\033[0m"%(num_train, Unfreeze_batch_size, UnFreeze_Epoch, total_step))
-        print("\033[1;33;44m[Warning] 由于总训练步长为%d，小于建议总步长%d，建议设置总世代为%d。\033[0m"%(total_step, wanted_step, wanted_epoch))
+        print("\n\033[1;33;44m[Warning] When using %s optimizer, it is recommended to set the total training steps to above %d.\033[0m"%(optimizer_type, wanted_step))
+        print("\033[1;33;44m[Warning] The total training data volume for this run is %d, Unfreeze_batch_size is %d, training %d Epochs in total, and the calculated total training steps are %d.\033[0m"%(num_train, Unfreeze_batch_size, UnFreeze_Epoch, total_step))
+        print("\033[1;33;44m[Warning] Since the total training steps are %d, which is less than the suggested total steps %d, it is recommended to set the total epochs to %d.\033[0m"%(total_step, wanted_step, wanted_epoch))
 
     #------------------------------------------------------#
-    #   主干特征提取网络特征通用，冻结训练可以加快训练速度
-    #   也可以在训练初期防止权值被破坏。
-    #   Init_Epoch为起始世代
-    #   Freeze_Epoch为冻结训练的世代
-    #   UnFreeze_Epoch总训练世代
-    #   提示OOM或者显存不足请调小Batch_size
+    #   Backbone feature extraction network features are universal, freezing training can speed up training
+    #   It can also prevent weights from being destroyed in the early stages of training.
+    #   Init_Epoch is the starting epoch
+    #   Freeze_Epoch is the epoch for freezing training
+    #   UnFreeze_Epoch is the total training epoch
+    #   Please reduce Batch_size if OOM or insufficient video memory is prompted
     #------------------------------------------------------#
     if True:
         UnFreeze_flag = False
         #------------------------------------#
-        #   冻结一定部分训练
+        #   Freeze a certain part for training
         #------------------------------------#
         if Freeze_Train:
             model.freeze_backbone()
 
         #-------------------------------------------------------------------#
-        #   如果不冻结训练的话，直接设置batch_size为Unfreeze_batch_size
+        #   If not freezing training, set batch_size directly to Unfreeze_batch_size
         #-------------------------------------------------------------------#
         batch_size = Freeze_batch_size if Freeze_Train else Unfreeze_batch_size
 
         #-------------------------------------------------------------------#
-        #   判断当前batch_size，自适应调整学习率
+        #   Determine the current batch_size and adaptively adjust the learning rate
         #-------------------------------------------------------------------#
         nbs             = 64
         lr_limit_max    = 1e-3 if optimizer_type == 'adam' else 1e-1
@@ -369,18 +370,18 @@ if __name__ == "__main__":
         }[optimizer_type]
         
         #---------------------------------------#
-        #   获得学习率下降的公式
+        #   Get the formula for learning rate decay
         #---------------------------------------#
         lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr_fit, Min_lr_fit, UnFreeze_Epoch)
         
         #---------------------------------------#
-        #   判断每一个世代的长度
+        #   Determine the length of each epoch
         #---------------------------------------#
         epoch_step      = num_train // batch_size
         epoch_step_val  = num_val // batch_size
         
         if epoch_step == 0 or epoch_step_val == 0:
-            raise ValueError("数据集过小，无法继续进行训练，请扩充数据集。")
+            raise ValueError("The dataset is too small to continue training, please expand the dataset.")
 
         train_dataset   = DataGenerator(train_lines, input_shape, True)
         val_dataset     = DataGenerator(val_lines, input_shape, False)
@@ -400,18 +401,18 @@ if __name__ == "__main__":
         gen_val         = DataLoader(val_dataset, shuffle=shuffle, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
                                 drop_last=True, collate_fn=detection_collate, sampler=val_sampler)
         #---------------------------------------#
-        #   开始模型训练
+        #   Start model training
         #---------------------------------------#
         for epoch in range(Init_Epoch, UnFreeze_Epoch):
             #---------------------------------------#
-            #   如果模型有冻结学习部分
-            #   则解冻，并设置参数
+            #   If the model has a frozen learning part
+            #   Then unfreeze and set parameters
             #---------------------------------------#
             if epoch >= Freeze_Epoch and not UnFreeze_flag and Freeze_Train:
                 batch_size = Unfreeze_batch_size
 
                 #-------------------------------------------------------------------#
-                #   判断当前batch_size，自适应调整学习率
+                #   Determine the current batch_size and adaptively adjust the learning rate
                 #-------------------------------------------------------------------#
                 nbs             = 64
                 lr_limit_max    = 1e-3 if optimizer_type == 'adam' else 1e-1
@@ -423,7 +424,7 @@ if __name__ == "__main__":
                 Init_lr_fit     = min(max(batch_size / nbs * Init_lr, lr_limit_min), lr_limit_max)
                 Min_lr_fit      = min(max(batch_size / nbs * Min_lr, lr_limit_min * 1e-2), lr_limit_max * 1e-2)
                 #---------------------------------------#
-                #   获得学习率下降的公式
+                #   Get the formula for learning rate decay
                 #---------------------------------------#
                 lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr_fit, Min_lr_fit, UnFreeze_Epoch)
                 
@@ -433,7 +434,7 @@ if __name__ == "__main__":
                 epoch_step_val  = num_val // batch_size
 
                 if epoch_step == 0 or epoch_step_val == 0:
-                    raise ValueError("数据集过小，无法继续进行训练，请扩充数据集。")
+                    raise ValueError("The dataset is too small to continue training, please expand the dataset.")
 
                 if distributed:
                     batch_size = batch_size // ngpus_per_node

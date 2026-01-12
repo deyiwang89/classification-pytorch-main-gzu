@@ -1,5 +1,5 @@
 #--------------------------------------------#
-#   该部分代码只用于看网络结构，并非测试代码
+#   This part of the code is only used to view the network structure, not for testing
 #--------------------------------------------#
 import torch
 from thop import clever_format, profile
@@ -20,10 +20,10 @@ if __name__ == "__main__":
     dummy_input     = torch.randn(1, 3, input_shape[0], input_shape[1]).to(device)
     flops, params   = profile(model.to(device), (dummy_input, ), verbose=False)
     #--------------------------------------------------------#
-    #   flops * 2是因为profile没有将卷积作为两个operations
-    #   有些论文将卷积算乘法、加法两个operations。此时乘2
-    #   有些论文只考虑乘法的运算次数，忽略加法。此时不乘2
-    #   本代码选择乘2，参考YOLOX。
+    #   flops * 2 because profile does not count convolution as two operations
+    #   Some papers count convolution as multiplication and addition, two operations. In this case, multiply by 2
+    #   Some papers only consider multiplication operations and ignore addition. In this case, do not multiply by 2
+    #   This code chooses to multiply by 2, referring to YOLOX.
     #--------------------------------------------------------#
     flops           = flops * 2
     flops, params   = clever_format([flops, params], "%.3f")
